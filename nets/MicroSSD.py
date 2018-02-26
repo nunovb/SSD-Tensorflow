@@ -96,7 +96,7 @@ class SSDNet(object):
         num_classes=21,
         no_annotation_label=21,
         feat_layers=['block1', 'block2', 'block3', 'block4', 'block5', 'block6'],
-        feat_shapes=[(37, 37), (18, 18), (9, 9), (4, 4), (2, 2), (1, 1)],
+        feat_shapes=[(38, 38), (19, 19), (10, 10), (5, 5), (3, 3), (1, 1)],
         anchor_size_bounds=[0.15, 0.90],
         # anchor_size_bounds=[0.20, 0.90],
         anchor_sizes=[(21., 45.),
@@ -454,12 +454,14 @@ def ssd_net(inputs,
         net = fire_layer('fire2', net, s1x1=15, e1x1=48, e3x3=48)
         net = fire_layer('fire3', net, s1x1=15, e1x1=48, e3x3=48)
         net = slim.max_pool2d(net, [3, 3], 2, scope='pool3')
+        print('net', net)
         #end_points['block2'] = net
         # net = slim.max_pool2d(net, [2, 2], scope='pool2')
         # Block 3.
         net = fire_layer('fire4', net, s1x1=24, e1x1=64, e3x3=64)
         net = fire_layer('fire5', net, s1x1=24, e1x1=64, e3x3=64)
         end_points['block1'] = net
+        print('net', net)
         net = slim.max_pool2d(net, [2, 2], scope='pool5')
         # Block 4.
         net = fire_layer('fire6', net, s1x1=36, e1x1=144, e3x3=144)
@@ -468,10 +470,12 @@ def ssd_net(inputs,
         net = fire_layer('fire9', net, s1x1=24, e1x1=48, e3x3=48)
         end_points['block2'] = net
         net = slim.max_pool2d(net, [3, 3], 2, scope='pool9')
+        print('net', net)
         # Block 5.
         net = fire_layer('fire10', net, s1x1=36, e1x1=48, e3x3=48)
         end_points['block3'] = net
         net = slim.max_pool2d(net, [3, 3], 2, scope='pool10')
+        print('net', net)
         # Additional SSD blocks.
         # Block 6: let's dilate the hell out of it!
         net = fire_layer('fire11', net, s1x1=36, e1x1=48, e3x3=48)
@@ -488,15 +492,18 @@ def ssd_net(inputs,
         with tf.variable_scope(end_point):
             #net = slim.conv2d(net, 256, [1, 1], scope='conv1x1')
             #net = custom_layers.pad2d(net, pad=(1, 1))
-            net = slim.conv2d(net, 48, [3, 3], stride=2, scope='conv12-1')#, padding='VALID')
+            net = slim.conv2d(net, 48, [3, 3], stride=2, scope='conv12-1')
             net = slim.conv2d(net, 48, [3, 3], scope='conv12-2')
         end_points[end_point] = net
+        #net = slim.max_pool2d(net, [3, 3], 1, scope='pool12')
+        print('net', net)
         end_point = 'block6'
         with tf.variable_scope(end_point):
             net = slim.conv2d(net, 48, [3, 3], scope='conv13-1')
-            net = slim.conv2d(net, 64, [3, 3], scope='conv13-2')
+            net = slim.conv2d(net, 64, [3, 3], scope='conv13-2', padding='VALID')
             #net = slim.conv2d(net, 256, [3, 3], stride=2, scope='conv3x3', padding='VALID')
         end_points[end_point] = net
+        print('net', net)
 
         # Prediction and localisations layers.
         predictions = []
@@ -544,7 +551,7 @@ def fire_layer(layer_name, inputs, s1x1, e1x1, e3x3, stddev=0.01,
     #layer_name + '/expand3x3', sq1x1, filters=e3x3, size=3, stride=1,
     #padding='SAME', stddev=stddev, freeze=freeze)
 
-    return tf.concat([ex1x1, ex3x3], 3, name=layer_name + '/concat')
+    return tf.concat([ex1x1, ex3x3], 1, name=layer_name + '/concat')
 
 def ssd_arg_scope(weight_decay=0.0005, data_format='NHWC'):
     """Defines the VGG arg scope.
@@ -585,7 +592,6 @@ def ssd_losses(logits, localisations,
         lshape = tfe.get_shape(logits[0], 5)
         num_classes = lshape[-1]
         batch_size = lshape[0]
-
         # Flatten out all vectors!
         flogits = []
         fgclasses = []
@@ -603,7 +609,9 @@ def ssd_losses(logits, localisations,
         gclasses = tf.concat(fgclasses, axis=0)
         gscores = tf.concat(fgscores, axis=0)
         localisations = tf.concat(flocalisations, axis=0)
+        print(localisations)
         glocalisations = tf.concat(fglocalisations, axis=0)
+        print(glocalisations)
         dtype = logits.dtype
 
         # Compute positive matching mask...
@@ -617,6 +625,7 @@ def ssd_losses(logits, localisations,
         nmask = tf.logical_and(tf.logical_not(pmask),
                                gscores > -0.5)
         fnmask = tf.cast(nmask, dtype)
+        print('fnmask:',fnmask)
         nvalues = tf.where(nmask,
                            predictions[:, 0],
                            1. - fnmask)
