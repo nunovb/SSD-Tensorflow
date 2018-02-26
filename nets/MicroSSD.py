@@ -625,7 +625,7 @@ def ssd_losses(logits, localisations,
         nmask = tf.logical_and(tf.logical_not(pmask),
                                gscores > -0.5)
         fnmask = tf.cast(nmask, dtype)
-        print('fnmask:',fnmask)
+        #print('fnmask:',fnmask)
         nvalues = tf.where(nmask,
                            predictions[:, 0],
                            1. - fnmask)
