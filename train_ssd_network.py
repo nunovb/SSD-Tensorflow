@@ -143,7 +143,7 @@ tf.app.flags.DEFINE_integer(
     'evaluate the VGG and ResNet architectures which do not use a background '
     'class for the ImageNet dataset.')
 tf.app.flags.DEFINE_string(
-    'model_name', 'ssd_300_vgg', 'The name of the architecture to train.')
+    'model_name', 'ssd_300_mic', 'The name of the architecture to train.')
 tf.app.flags.DEFINE_string(
     'preprocessing_name', None, 'The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')

@@ -46,6 +46,7 @@ def get_preprocessing(name, is_training=False):
     """
     preprocessing_fn_map = {
         'ssd_300_vgg': ssd_vgg_preprocessing,
+        'ssd_300_mic': ssd_vgg_preprocessing,
         'ssd_512_vgg': ssd_vgg_preprocessing,
     }
 

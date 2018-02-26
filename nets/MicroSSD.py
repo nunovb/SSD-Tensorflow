@@ -359,7 +359,7 @@ def ssd_anchors_all_layers(img_shape,
                            anchor_sizes,
                            anchor_ratios,
                            anchor_steps,
-                           offset=0.5,
+                           offset=0.9,
                            dtype=np.float32):
     """Compute anchor boxes for all feature layers.
     """
@@ -407,9 +407,10 @@ def ssd_multibox_layer(inputs,
         net = custom_layers.l2_normalization(net, scaling=True)
     # Number of anchors.
     num_anchors = len(sizes) + len(ratios)
-
+    print('num_anchors:', num_anchors)
     # Location.
     num_loc_pred = num_anchors * 4
+    print("num_loc_pred:",num_loc_pred)
     loc_pred = slim.conv2d(net, num_loc_pred, [3, 3], activation_fn=None,
                            scope='conv_loc')
     loc_pred = custom_layers.channel_to_last(loc_pred)
@@ -417,6 +418,7 @@ def ssd_multibox_layer(inputs,
                           tensor_shape(loc_pred, 4)[:-1]+[num_anchors, 4])
     # Class prediction.
     num_cls_pred = num_anchors * num_classes
+    print("num_cls_pred:", num_cls_pred)
     cls_pred = slim.conv2d(net, num_cls_pred, [3, 3], activation_fn=None,
                            scope='conv_cls')
     cls_pred = custom_layers.channel_to_last(cls_pred)
@@ -446,7 +448,7 @@ def ssd_net(inputs,
     with tf.variable_scope(scope, 'ssd_300_mic', [inputs], reuse=reuse):
         # Original CNN blocks.
         net = slim.conv2d(inputs, 48, [3, 3], 2, scope='conv1')
-        #end_points['block1'] = net
+        #end_points['block0'] = net
         net = slim.max_pool2d(net, [3, 3], 2, scope='pool1')
         # Block 2.
         net = fire_layer('fire2', net, s1x1=15, e1x1=48, e3x3=48)
@@ -463,7 +465,7 @@ def ssd_net(inputs,
         net = fire_layer('fire6', net, s1x1=36, e1x1=144, e3x3=144)
         net = fire_layer('fire7', net, s1x1=36, e1x1=144, e3x3=144)
         net = fire_layer('fire8', net, s1x1=36, e1x1=144, e3x3=144)
-        net = fire_layer('fire9', net, s1x1=24, e1x1=24, e3x3=48)
+        net = fire_layer('fire9', net, s1x1=24, e1x1=48, e3x3=48)
         end_points['block2'] = net
         net = slim.max_pool2d(net, [3, 3], 2, scope='pool9')
         # Block 5.
@@ -486,13 +488,13 @@ def ssd_net(inputs,
         with tf.variable_scope(end_point):
             #net = slim.conv2d(net, 256, [1, 1], scope='conv1x1')
             #net = custom_layers.pad2d(net, pad=(1, 1))
-            net = slim.conv2d(net, 48, [3, 3], stride=2, scope='convl2-1')#, padding='VALID')
-            net = slim.conv2d(net, 48, [3, 3], scope='convl2-2')
+            net = slim.conv2d(net, 48, [3, 3], stride=2, scope='conv12-1')#, padding='VALID')
+            net = slim.conv2d(net, 48, [3, 3], scope='conv12-2')
         end_points[end_point] = net
         end_point = 'block6'
         with tf.variable_scope(end_point):
-            net = slim.conv2d(net, 48, [3, 3], scope='convl3-1')
-            net = slim.conv2d(net, 64, [3, 3], scope='convl3-2')
+            net = slim.conv2d(net, 48, [3, 3], scope='conv13-1')
+            net = slim.conv2d(net, 64, [3, 3], scope='conv13-2')
             #net = slim.conv2d(net, 256, [3, 3], stride=2, scope='conv3x3', padding='VALID')
         end_points[end_point] = net
 
@@ -510,7 +512,7 @@ def ssd_net(inputs,
             predictions.append(prediction_fn(p))
             logits.append(p)
             localisations.append(l)
-
+        print('predictions:',predictions)
         return predictions, localisations, logits, end_points
 ssd_net.default_image_size = 300
 
@@ -529,15 +531,16 @@ def fire_layer(layer_name, inputs, s1x1, e1x1, e3x3, stddev=0.01,
     Returns:
       fire layer operation.
     """
+    # 36096000 and 256704
 
-    sq1x1 = slim.conv2d(inputs, filters=s1x1, scope=layer_name+'/squeeze1x1')
+    sq1x1 = slim.conv2d(inputs, s1x1, [1, 1], scope=layer_name+'/squeeze1x1')
     # layer_name + '/squeeze1x1', inputs, filters=s1x1, size=1, stride=1,
     # padding='SAME', stddev=stddev, freeze=freeze)
-    ex1x1 = slim.conv2d(sq1x1, filters=e1x1, scope=layer_name+'/expand1x1')
+    ex1x1 = slim.conv2d(sq1x1, e1x1, [1, 1], scope=layer_name+'/expand1x1')
     #self._conv_layer(
     #layer_name + '/expand1x1', sq1x1, filters=e1x1, size=1, stride=1,
     #padding='SAME', stddev=stddev, freeze=freeze)
-    ex3x3 = slim.conv2d(sq1x1, filters=e3x3, scope=layer_name+'/expand3x3')
+    ex3x3 = slim.conv2d(sq1x1, e3x3, [3, 3], scope=layer_name+'/expand3x3')
     #layer_name + '/expand3x3', sq1x1, filters=e3x3, size=3, stride=1,
     #padding='SAME', stddev=stddev, freeze=freeze)
 
