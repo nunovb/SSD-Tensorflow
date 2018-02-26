@@ -359,7 +359,7 @@ def ssd_anchors_all_layers(img_shape,
                            anchor_sizes,
                            anchor_ratios,
                            anchor_steps,
-                           offset=0.9,
+                           offset=0.5,
                            dtype=np.float32):
     """Compute anchor boxes for all feature layers.
     """
