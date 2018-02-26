@@ -407,10 +407,10 @@ def ssd_multibox_layer(inputs,
         net = custom_layers.l2_normalization(net, scaling=True)
     # Number of anchors.
     num_anchors = len(sizes) + len(ratios)
-    print('num_anchors:', num_anchors)
+    #print('num_anchors:', num_anchors)
     # Location.
     num_loc_pred = num_anchors * 4
-    print("num_loc_pred:",num_loc_pred)
+    #print("num_loc_pred:",num_loc_pred)
     loc_pred = slim.conv2d(net, num_loc_pred, [3, 3], activation_fn=None,
                            scope='conv_loc')
     loc_pred = custom_layers.channel_to_last(loc_pred)
@@ -418,7 +418,7 @@ def ssd_multibox_layer(inputs,
                           tensor_shape(loc_pred, 4)[:-1]+[num_anchors, 4])
     # Class prediction.
     num_cls_pred = num_anchors * num_classes
-    print("num_cls_pred:", num_cls_pred)
+    #print("num_cls_pred:", num_cls_pred)
     cls_pred = slim.conv2d(net, num_cls_pred, [3, 3], activation_fn=None,
                            scope='conv_cls')
     cls_pred = custom_layers.channel_to_last(cls_pred)
